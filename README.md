@@ -1,4 +1,5 @@
 Golang To Do App (Command Line based)
+
 Features such as 
 [1] Adding new items
 [2] Displaying item list
