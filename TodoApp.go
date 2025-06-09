@@ -46,7 +46,7 @@ func addToDoItem() {
 	status, _ := reader.ReadString('\n')
 	status = strings.TrimSpace(strings.ToLower(status))
 
-	// Optional: Validate status
+	// status validation
 	validStatuses := map[string]bool{"not started": true, "started": true, "completed": true}
 	if !validStatuses[status] {
 		fmt.Println("Invalid status entered.")
@@ -121,6 +121,13 @@ func updateTodoItemStatus() {
 	fmt.Print("Enter new status: ")
 	newStatus, _ := reader.ReadString('\n')
 	newStatus = strings.TrimSpace(newStatus)
+
+	// status validation
+	validStatuses := map[string]bool{"not started": true, "started": true, "completed": true}
+	if !validStatuses[newStatus] {
+		fmt.Println("Invalid status entered.")
+		return
+	}
 
 	lines[num-1] = fmt.Sprintf("%s, %s", newDesc, newStatus)
 	//lines[num-1] = fmt.Sprintf("Description: %s, Status: %s\n", newDesc, newStatus)
