@@ -76,6 +76,7 @@ func main() {
 }
 
 /*
+Loads items from json file to memory
 [1] Checks if there is error when reading the json file
 [2] Checks if the the todo item list exists
 [3] Unmarshalls the json data from the file and loads it to memory
@@ -94,6 +95,7 @@ func loadTodoItems() ([]TodoItem, error) {
 }
 
 /*
+Saves todo items to json file
 [1] Checks if there is error when marshalling the todo items passed from memory
 and returns error if there is problem
 [2] Writes todo items to the specified file from memory and throws error if there is problem
@@ -107,6 +109,7 @@ func saveTodoItems(items []TodoItem) error {
 }
 
 /*
+Get the index of the next item
 [1] Finds out the index of the maximum or last todo item
 [2] Returns the index of the item after the maximum todo item
 */
@@ -121,6 +124,7 @@ func getNextId(items []TodoItem) int {
 }
 
 /*
+Adds todo item in the list
 [1] Checks if the "status" of the new todo item is valid
 [2] assigns all todo items to "items" variable
 [3] new todo item is created using the passed "desc" and "status" and new Id
@@ -144,7 +148,13 @@ func addTodoItem(desc, status string) {
 	fmt.Printf("Added item [%d]: %s (%s)\n", newItem.Id, newItem.Description, newItem.Status)
 }
 
-// List all to-do items
+/*
+Lists all todo items
+[1] Loads todo items from json file and check for error
+[2] If there is error message is displayed
+[3] Checks how many items are in the todo list and display error message if it is empty
+[4] If there are items in the todo list they will be listed.
+*/
 func listTodoItems() {
 	items, err := loadTodoItems()
 	if err != nil {
@@ -160,7 +170,14 @@ func listTodoItems() {
 	}
 }
 
-// Update an existing to-do item
+/*
+Update an existing to-do item
+[1] Loads todo items from json file
+[2] Looks for index to be updated in the list of todo items
+[3] If index is found description and status will be updated.
+[4] If not "Item not found" message is displayed
+[5] Changes are saved in json file
+*/
 func updateTodoItem(index int, desc, status string) {
 	items, _ := loadTodoItems()
 	updated := false
@@ -170,7 +187,6 @@ func updateTodoItem(index int, desc, status string) {
 				items[i].Description = desc
 			}
 			if status != "" {
-				//status = strings.ToLower(status)
 				if !validStatuses[status] {
 					fmt.Println("Invalid status. Use: not started, started, or complete.")
 					return
@@ -190,6 +206,14 @@ func updateTodoItem(index int, desc, status string) {
 }
 
 // Delete an item
+/*
+Update an existing to-do item
+[1] Loads todo items from json file
+[2] Looks for index to be deleted in the list of todo items
+[3] If index is found item it will not be appended to the new item list
+[4] If not "Item not found" message is displayed
+[5] Changes are saved in json file
+*/
 func deleteTodoItem(id int) {
 	items, _ := loadTodoItems()
 	newItems := []TodoItem{}
