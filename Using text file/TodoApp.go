@@ -7,17 +7,8 @@ import (
 	"strings"
 )
 
-// To Do item data structure
-type TodoItem struct {
-	itemDescription string
-	itemStatus      string // could be modified to use array or slice later
-	// options for itemStatus are "not started", "started", "completed"
-}
-
-//var todoItems []TodoItem
-
 // file where items are stored
-const fileName = "todo-items.txt"
+const fileName = "data/todo-items.txt"
 
 // displays all todo item option
 func displayTodoOptions() {
@@ -87,7 +78,7 @@ func displayAllTodoItems() {
 		parts := strings.Split(scanner.Text(), ",")
 		if len(parts) == 2 {
 			//fmt.Printf("%d. Description: %s | Status: %s\n", index, parts[0], parts[1])
-			fmt.Printf("%d. %s | %s\n", index, parts[0], parts[1])
+			fmt.Printf("%d. %s [%s ]\n", index, parts[0], parts[1])
 			index++
 		}
 	}
