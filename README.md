@@ -18,6 +18,6 @@ There are two versions of the app uploaded
 
 [2] The other allows user to carry out CRUD operations via command line flags using a json file
 
-**Feedback changes has been implented in [2] 
+**Feedback changes has been implented in [2] i.e. can be found in "Using JSON" folder
 
 
