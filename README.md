@@ -1,4 +1,6 @@
-*The code can be found in "todoapp-json" folder. 
+*The code can be found in "todoapp-json" folder.
+
+*"Using text file" folder contains work from week 1 that has been brought forward and has discontinued
 
 **#How to use Todo App CLI**
 
