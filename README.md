@@ -55,7 +55,7 @@ curl -X POST http://localhost:8080/create \
 
 [3] Update - /update
 
-curl -X POST http://localhost:8080/update \
+curl -X PUT http://localhost:8080/update \
   -H "Content-Type: application/json" \
   -d '{"id":1,"description":"Take the dog for walk","status":"completed"}'
 
