@@ -16,6 +16,7 @@ type TodoItem struct {
 	Status      Status `json:"status"`
 }
 
+// check if todo item is valid
 func IsValidStatus(status Status) bool {
 	switch status {
 	case NotStarted, Started, Completed:

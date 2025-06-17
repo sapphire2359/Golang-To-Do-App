@@ -6,8 +6,9 @@ import (
 	"todoapp-json/models"
 )
 
-const fileName = "todos.json"
+const fileName = "data/todos.json"
 
+// load todo items from json file
 func LoadTodoItems() ([]models.TodoItem, error) {
 	data, err := os.ReadFile(fileName)
 	if err != nil {
@@ -23,6 +24,7 @@ func LoadTodoItems() ([]models.TodoItem, error) {
 	return todos, nil
 }
 
+// store todo items in json file
 func SaveTodoItems(todos []models.TodoItem) error {
 	data, err := json.MarshalIndent(todos, "", "  ")
 	if err != nil {
@@ -31,6 +33,7 @@ func SaveTodoItems(todos []models.TodoItem) error {
 	return os.WriteFile(fileName, data, 0644)
 }
 
+// returns the index of the next todo item in the list
 func GetNextId(items []models.TodoItem) int {
 	maxId := 0
 	for _, item := range items {

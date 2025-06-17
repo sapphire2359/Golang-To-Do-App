@@ -11,127 +11,107 @@ import (
 	"todoapp-json/trace"
 )
 
-// registering all handlers wrapped with middleware trace function
-func RegisterHandlers(mux *http.ServeMux) {
-	mux.Handle("/get", TraceMiddleware(http.HandlerFunc(getHandler)))
-	mux.Handle("/create", TraceMiddleware(http.HandlerFunc(createHandler)))
-	mux.Handle("/update", TraceMiddleware(http.HandlerFunc(updateHandler)))
-	mux.Handle("/delete", TraceMiddleware(http.HandlerFunc(deleteHandler)))
-
-	// Serve static /about page
-	fs := http.FileServer(http.Dir("web/static"))
-	mux.Handle("/static/", http.StripPrefix("/static/", fs))
-
-	// Serve dynamic list page
-	mux.Handle("/list", TraceMiddleware(http.HandlerFunc(listHandler)))
-}
-
 // handler to retrieve/get all todo items
-func getHandler(w http.ResponseWriter, r *http.Request) {
-	//ctx := trace.WithTraceID(r.Context(), trace.NewTraceID())
-	ctx := r.Context()
+func getHandler(write http.ResponseWriter, request *http.Request) {
+	ctx := request.Context() // adding TraceID to context from middleware
 	todoItems, err := logic.ListTodoItems(ctx)
 	if err != nil {
-		http.Error(w, "Failed to read todos", http.StatusInternalServerError)
+		http.Error(write, "Failed to read todos", http.StatusInternalServerError)
 		return
 	}
-	json.NewEncoder(w).Encode(todoItems)
+	json.NewEncoder(write).Encode(todoItems)
 }
 
 // handler to create a new todo item to the list
-func createHandler(w http.ResponseWriter, r *http.Request) {
-	//ctx := trace.WithTraceID(r.Context(), trace.NewTraceID())
-	ctx := r.Context()
-	if r.Method != http.MethodPost {
-		http.Error(w, "Only POST allowed", http.StatusMethodNotAllowed)
+func createHandler(write http.ResponseWriter, request *http.Request) {
+	ctx := request.Context() // adding TraceID to context from middleware
+	if request.Method != http.MethodPost {
+		http.Error(write, "Only POST allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
 	var todo models.TodoItem
-	if err := json.NewDecoder(r.Body).Decode(&todo); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+	if err := json.NewDecoder(request.Body).Decode(&todo); err != nil {
+		http.Error(write, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 	if err := logic.AddTodoItem(ctx, todo.Description, todo.Status); err != nil {
-		http.Error(w, "Failed to create todo", http.StatusInternalServerError)
+		if err.Error() == "invalid status" {
+			http.Error(write, err.Error(), http.StatusBadRequest) // returns HTTP 400
+			return
+		}
+		http.Error(write, "Failed to create todo", http.StatusInternalServerError)
 		return
 	}
 	slog.Info("Created todo", "traceID", trace.GetTraceID(ctx), "desc", todo.Description)
-	w.WriteHeader(http.StatusCreated)
+	write.WriteHeader(http.StatusCreated)
 }
 
 // handler to update a todo item from the list using id
-func updateHandler(w http.ResponseWriter, r *http.Request) {
-	// ctx := trace.WithTraceID(r.Context(), trace.NewTraceID())
-	ctx := r.Context()
-	if r.Method != http.MethodPut {
-		http.Error(w, "Only PUT allowed", http.StatusMethodNotAllowed)
+func updateHandler(write http.ResponseWriter, request *http.Request) {
+	ctx := request.Context() // adding TraceID to context from middleware
+	if request.Method != http.MethodPut {
+		http.Error(write, "Only PUT allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
 	var todo models.TodoItem
-	if err := json.NewDecoder(r.Body).Decode(&todo); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+	if err := json.NewDecoder(request.Body).Decode(&todo); err != nil {
+		http.Error(write, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 	if todo.Id == 0 {
-		http.Error(w, "Missing ID", http.StatusBadRequest)
+		http.Error(write, "Missing ID", http.StatusBadRequest)
 		return
 	}
 	if err := logic.UpdateTodoItem(ctx, todo.Id, todo.Description, todo.Status); err != nil {
-		http.Error(w, "Update failed: "+err.Error(), http.StatusBadRequest)
+		if err.Error() == "invalid status" {
+			http.Error(write, err.Error(), http.StatusBadRequest) // returns HTTP 400
+			return
+		}
+
+		http.Error(write, "Update failed: "+err.Error(), http.StatusBadRequest)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
+	write.WriteHeader(http.StatusOK)
 }
 
 // handler to delete a todo item
-func deleteHandler(w http.ResponseWriter, r *http.Request) {
-	// ctx := trace.WithTraceID(r.Context(), trace.NewTraceID())
-	ctx := r.Context()
-	if r.Method != http.MethodDelete {
-		http.Error(w, "Only DELETE allowed", http.StatusMethodNotAllowed)
+func deleteHandler(write http.ResponseWriter, request *http.Request) {
+	ctx := request.Context() // adding TraceID to context from middleware
+	if request.Method != http.MethodDelete {
+		http.Error(write, "Only DELETE allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	idStr := r.URL.Query().Get("id")
+	idStr := request.URL.Query().Get("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil || id <= 0 {
-		http.Error(w, "Invalid or missing ID", http.StatusBadRequest)
+		http.Error(write, "Invalid or missing ID", http.StatusBadRequest)
 		return
 	}
 	if err := logic.DeleteTodoItem(ctx, id); err != nil {
-		http.Error(w, "Delete failed: "+err.Error(), http.StatusBadRequest)
+		http.Error(write, "Delete failed: "+err.Error(), http.StatusBadRequest)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
+	write.WriteHeader(http.StatusOK)
 }
 
-// handler to list data in dynamically in a web page
-func listHandler(w http.ResponseWriter, r *http.Request) {
-	// ctx := trace.WithTraceID(r.Context(), trace.NewTraceID())
-	ctx := r.Context()
+// handler to list data dynamically in a web page
+func listHandler(write http.ResponseWriter, request *http.Request) {
+	ctx := request.Context() // adding TraceID to context from middleware
 	todos, err := logic.ListTodoItems(ctx)
 	if err != nil {
-		http.Error(w, "Failed to retrieve todos", http.StatusInternalServerError)
+		http.Error(write, "Failed to retrieve todos", http.StatusInternalServerError)
 		return
 	}
 
 	tmpl, err := template.ParseFiles("web/dynamic/list.html")
 	if err != nil {
-		http.Error(w, "Template parsing error", http.StatusInternalServerError)
+		http.Error(write, "Template parsing error", http.StatusInternalServerError)
 		return
 	}
 
-	if err := tmpl.Execute(w, todos); err != nil {
-		http.Error(w, "Template execution error", http.StatusInternalServerError)
+	if err := tmpl.Execute(write, todos); err != nil {
+		http.Error(write, "Template execution error", http.StatusInternalServerError)
 	}
-}
-
-// middleware func that adds a TraceID to each request's context.
-func TraceMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctxWithTrace := trace.WithTraceID(r.Context(), trace.NewTraceID())
-		r = r.WithContext(ctxWithTrace)
-		next.ServeHTTP(w, r)
-	})
 }

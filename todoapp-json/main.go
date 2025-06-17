@@ -82,5 +82,6 @@ func main() {
 		fmt.Println("  -action=update -Id=\"...\" -desc=\"...\" -status=\"...\"")
 		fmt.Println("  -action=delete= -Id=\"...\"")
 		fmt.Println("  -action=serve")
+		fmt.Println("  -action=\"anything other than [add|list|update|delete|serve]\"")
 	}
 }
