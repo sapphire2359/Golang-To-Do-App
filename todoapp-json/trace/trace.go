@@ -2,7 +2,8 @@ package trace
 
 import (
 	"context"
-	"fmt"
+
+	"github.com/google/uuid"
 )
 
 // context key for TraceID
@@ -23,9 +24,5 @@ func GetTraceID(ctx context.Context) string {
 }
 
 func NewTraceID() string {
-	return fmt.Sprintf("trace-%d", RandInt()) // Replace with UUID if needed
-}
-
-func RandInt() int {
-	return int(1000 + (9999-1000)*int64(1))
+	return "trace-" + uuid.New().String()
 }
