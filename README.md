@@ -1,7 +1,7 @@
 *The code can be found in "todoapp-json" folder.
 
 *"Using text file" folder contains work from week 1 that has been brought forward and has discontinued
-
+------------------------------------------------------------------------------------------------------------------
 **#How to use Todo App CLI**
 
 [1] Add item
@@ -30,6 +30,15 @@ When anything other than "add|list|update|delete|serve" is input after the -acti
 go run todo-app.go -action= or go run todo-app.go -action=abcdefg
 
 ----------------------------------------------------------------------------------------------------------------------
+**#How to run test**
+
+[1] Logic test (Table driven)
+
+\Golang To Do App\todoapp-json> go test -v ./logic
+
+[2] Other tests may be added...
+
+--------------------------------------------------------------------------------------------------------------------
 
 **#How to test API (CRUD)**
 
