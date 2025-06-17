@@ -33,7 +33,7 @@ go run todo-app.go -action= or go run todo-app.go -action=abcdefg
 
 ----------------------------------------------------------------------------------------------------------------------
 
-**#How to run test**
+**#How to run unit test**
 
 [1] Logic test (Table driven)
 
