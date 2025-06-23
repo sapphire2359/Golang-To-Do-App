@@ -32,7 +32,6 @@ type StoreResponse struct {
 var (
 	StoreChan chan StoreCommand
 	FilePath  string = "data/data.json" // Default, override from CLI
-	ReadOnly  bool   = false            // Controlled via CLI flag
 )
 
 func StartStoreLoop() {
@@ -86,6 +85,7 @@ func StartStoreLoop() {
 	}
 }
 
+// get the next id after the last item
 func GetNextId(todos []models.TodoItem) int {
 	maxID := 0
 	for _, item := range todos {
@@ -95,6 +95,8 @@ func GetNextId(todos []models.TodoItem) int {
 	}
 	return maxID + 1
 }
+
+// loading todo items from json file
 func LoadTodoItems() ([]models.TodoItem, error) {
 	file, err := os.Open(FilePath)
 	if err != nil {
@@ -114,6 +116,7 @@ func LoadTodoItems() ([]models.TodoItem, error) {
 	return todos, nil
 }
 
+// store todo items to the json file
 func SaveTodoItems(todos []models.TodoItem) error {
 	data, err := json.MarshalIndent(todos, "", "  ")
 	if err != nil {

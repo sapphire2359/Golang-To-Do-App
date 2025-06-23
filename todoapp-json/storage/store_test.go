@@ -164,7 +164,6 @@ func send(t *testing.T, cmd StoreCommand) StoreResponse {
 
 func setupTestStoreLoop(t *testing.T) {
 	t.Helper()
-	// tmpFile := filepath.Join(t.TempDir(), "store_test.json")
 	SetDataFilePath(testDataFile)
 
 	// Clean up any existing data

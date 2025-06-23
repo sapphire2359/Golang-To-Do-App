@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"strings"
 	"todoapp-json/api"
 	"todoapp-json/cmd"
 	"todoapp-json/storage"
@@ -25,12 +26,14 @@ func main() {
 
 	// CLI mode check
 	if len(os.Args) > 1 {
-		// if strings.Split(os.Args[1], "=")[1] == "REPL" {
-		// 	cmd.RunREPL(context.Background())
-		// 	return
-		// }
-		cmd.RunCLI(context.Background())
-		return
+		//REPL mode check
+		if strings.Split(os.Args[1], "=")[1] == "repl" {
+			cmd.RunREPL(context.Background())
+			return
+		} else {
+			cmd.RunCLI(context.Background())
+			return
+		}
 	}
 
 	// HTTP server setup
