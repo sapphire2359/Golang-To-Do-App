@@ -12,11 +12,11 @@
 
 **[future works]**
 
-[1] multiple start-ups [cli, api and maybe repl] functionality
+[1] Repl (Read-eval-print loop)
 
-[2] graceful shutdown
+[2] multiple start-ups [cli, api and repl] functionality
 
-[3] Repl (Read-eval-print loop) - added but not integrated yet
+[3] graceful shutdown
 
 ------------------------------------------------------------------------------------------------------------------
 
