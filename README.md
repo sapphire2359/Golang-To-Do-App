@@ -1,43 +1,24 @@
 *The code can be found in "todoapp-json" folder.
 
+**[changes]**
+
+[1] Implemented CSP (Communicating Sequential Processes) in todo-app
+
+[2] Added one central go routine and many channels to read and write from the json-file
+
+[3] Added parallel test for storage and logic layer
+
+[4] Changed/Added unit test for storage and logic layer
+
+**[future works]**
+
+[1] multiple start-ups [cli, api and maybe repl] functionality
+
+[2] graceful shutdown
+
+[3] Repl (Read-eval-print loop) - added but not integrated yet
+
 ------------------------------------------------------------------------------------------------------------------
-
-**#How to use Todo App CLI**
-
-[1] Add item
-
-go run main.go -action=add -desc=" " -status="not started|started|completed"
-
-[2] List items
-
-go run todo-app.go -action=list
-
-[3] Update item
-
-go run main.go -action=update -id=" " -desc="" -status-""
-
-[4] Delete item
-
-go run main.go -action=delete -id=" "
-
-[5] Todo app how to use instructions is displayed.
-When anything other than "add|list|update|delete" is input after the -action flag e.g.
-
-go run main.go -action= or go run main.go -action=abcdefg
-
-----------------------------------------------------------------------------------------------------------------------
-
-**#How to run unit test**
-
-[1] Logic layer (Parallel and Unit)
-
-\todoapp-json> go test -v ./logic
-
-[2] Storage layer (Parallel and unit)
-
-\todoapp-json> go test -v ./storage
-
---------------------------------------------------------------------------------------------------------------------
 
 **#How to test API (CRUD)**
 
@@ -71,7 +52,7 @@ curl -X PUT http://localhost:8080/update \
 
 curl -X DELETE "http://localhost:8080/delete?id=16"
 
----------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
 
 **#How to run static and dynamic web page**
 
@@ -86,5 +67,46 @@ http://localhost:8080/static/about.html
 Open a browser and input the following url.
 
 http://localhost:8080/list
+
+--------------------------------------------------------------------------------------------------------------------
+
+**#How to run unit test**
+
+[1] Logic layer (Parallel and Unit)
+
+\todoapp-json> go test -v ./logic
+
+[2] Storage layer (Parallel and unit)
+
+\todoapp-json> go test -v ./storage
+
+---------------------------------------------------------------------------------------------------------------------
+
+**#How to use Todo App CLI**
+
+[1] Add item
+
+go run main.go -action=add -desc=" " -status="not started|started|completed"
+
+[2] List items
+
+go run todo-app.go -action=list
+
+[3] Update item
+
+go run main.go -action=update -id=" " -desc="" -status-""
+
+[4] Delete item
+
+go run main.go -action=delete -id=" "
+
+[5] Todo app how to use instructions is displayed.
+When anything other than "add|list|update|delete" is input after the -action flag e.g.
+
+go run main.go -action= or go run main.go -action=abcdefg
+
+--------------------------------------------------------------------------------------------------------------------
+
+
 
 
