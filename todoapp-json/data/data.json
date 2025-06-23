@@ -1,0 +1,37 @@
+[
+  {
+    "id": 1,
+    "description": "Go Shopping",
+    "status": "started"
+  },
+  {
+    "id": 2,
+    "description": "Go Shopping",
+    "status": "completed"
+  },
+  {
+    "id": 3,
+    "description": "Take break",
+    "status": "started"
+  },
+  {
+    "id": 4,
+    "description": "Work",
+    "status": "not started"
+  },
+  {
+    "id": 5,
+    "description": "Trying...",
+    "status": "not started"
+  },
+  {
+    "id": 6,
+    "description": "checkin time",
+    "status": "not started"
+  },
+  {
+    "id": 7,
+    "description": "Buy milk",
+    "status": "not started"
+  }
+]

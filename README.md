@@ -16,11 +16,11 @@ go run todo-app.go -action=list
 
 [3] Update item
 
-go run todo-app.go -action=update -Id=" " -desc="" -status-""
+go run todo-app.go -action=update -id=" " -desc="" -status-""
 
 [4] Delete item
 
-go run todo-app.go -action=delete -Id=" "
+go run todo-app.go -action=delete -id=" "
 
 [5] Start local server
 
@@ -35,11 +35,13 @@ go run todo-app.go -action= or go run todo-app.go -action=abcdefg
 
 **#How to run unit test**
 
-[1] Logic test (Table driven)
+[1] Logic layer (Parallel and Unit)
 
 \todoapp-json> go test -v ./logic
 
-[2] Other tests may be added...
+[2] Storage layer (Parallel and unit)
+
+\todoapp-json> go test -v ./storage
 
 --------------------------------------------------------------------------------------------------------------------
 
@@ -49,7 +51,7 @@ go run todo-app.go -action= or go run todo-app.go -action=abcdefg
 
 Start local server in any terminal powershell or bash and run the following command i.e.
 
-go run todo-app.go -action=serve
+go run todo-app.go
 
 [Step 2]
 

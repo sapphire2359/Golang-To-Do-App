@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"strings"
 	"todoapp-json/models"
 	"todoapp-json/storage"
 	"todoapp-json/trace"
@@ -11,82 +12,79 @@ import (
 
 // add todo item
 func AddTodoItem(ctx context.Context, description string, status models.Status) error {
-	todoItems, err := storage.LoadTodoItems()
-	if err != nil {
-		return err
+	//check if description is empty
+	if strings.TrimSpace(description) == "" {
+		slog.Info("Missing description - description is blank", "traceID", trace.GetTraceID(ctx), "description", description)
+		return errors.New("missing description")
 	}
 	//status validation
 	if !models.IsValidStatus(status) {
-		slog.Info("Invalid status...", "traceID", trace.GetTraceID(ctx), "status", status)
+		slog.Info("Invalid status - input only [not started|started|completed]", "traceID", trace.GetTraceID(ctx), "status", status)
 		return errors.New("invalid status")
 	}
-	id := storage.GetNextId(todoItems)
-	todoItem := models.TodoItem{Id: id, Description: description, Status: status}
-	todoItems = append(todoItems, todoItem)
-
-	slog.Info("Added new todo item...", "traceID", trace.GetTraceID(ctx), "id", id)
-	return storage.SaveTodoItems(todoItems)
+	respCh := make(chan storage.StoreResponse)
+	storage.StoreChan <- storage.StoreCommand{
+		Type:       storage.CmdAdd,
+		Item:       models.TodoItem{Description: description, Status: status},
+		ResponseCh: respCh,
+	}
+	resp := <-respCh
+	slog.Info("sending todo item data to add to json file via channel...", "traceID", trace.GetTraceID(ctx), "description", description)
+	return resp.Err
 }
 
 // list todo items
 func ListTodoItems(ctx context.Context) ([]models.TodoItem, error) {
-	slog.Info("List all todo items...", "traceID", trace.GetTraceID(ctx))
-	return storage.LoadTodoItems()
+	respCh := make(chan storage.StoreResponse)
+	storage.StoreChan <- storage.StoreCommand{
+		Type:       storage.CmdList,
+		ResponseCh: respCh,
+	}
+	resp := <-respCh
+	slog.Info("sending data to retrieve all todo items from json file via channel...", "traceID", trace.GetTraceID(ctx))
+	return resp.TodoItems, resp.Err
 }
 
 // update todo item
 func UpdateTodoItem(ctx context.Context, id int, description string, newStatus models.Status) error {
-	todoItems, err := storage.LoadTodoItems()
-	if err != nil {
-		slog.Info("Error loading todo items", "traceID", trace.GetTraceID(ctx), "Todo items", todoItems)
-		return err
+	if id <= 0 {
+		return errors.New("invalid id")
 	}
-	updated := false
-	for i, todoItem := range todoItems {
-		if todoItem.Id == id {
-			if description != "" {
-				todoItems[i].Description = description
-			}
-			if newStatus != "" {
-				//status validation
-				if !models.IsValidStatus(newStatus) {
-					slog.Info("Invalid status...", "traceID", trace.GetTraceID(ctx), "status", newStatus)
-					return errors.New("invalid status")
-				}
-				todoItems[i].Status = newStatus
-			}
-			updated = true
-			break
-		}
+	if strings.TrimSpace(description) == "" {
+		return errors.New("description cannot be empty")
 	}
-	if !updated {
-		slog.Info("Todo item not found.", "traceID", trace.GetTraceID(ctx), "updated", updated)
-		return errors.New("todo item not found")
+	if !models.IsValidStatus(newStatus) {
+		return errors.New("invalid status")
 	}
-	slog.Info("Updated todo item", "traceID", trace.GetTraceID(ctx), "id", id)
-	return storage.SaveTodoItems(todoItems)
+
+	respCh := make(chan storage.StoreResponse)
+	if id <= 0 {
+		return errors.New("invalid id")
+	}
+	storage.StoreChan <- storage.StoreCommand{
+		Type: storage.CmdUpdate,
+		Item: models.TodoItem{
+			Id:          id,
+			Description: description,
+			Status:      newStatus,
+		},
+		ResponseCh: respCh,
+	}
+
+	resp := <-respCh
+	slog.Info("sending data to update an existing todo item in json file via channel...", "traceID", trace.GetTraceID(ctx), "id", id)
+	return resp.Err
 }
 
 // delete todo item
 func DeleteTodoItem(ctx context.Context, id int) error {
-	todoItems, err := storage.LoadTodoItems()
-	if err != nil {
-		slog.Info("Error loading todo items", "traceID", trace.GetTraceID(ctx), "Todo items", todoItems)
-		return err
+	respCh := make(chan storage.StoreResponse)
+	storage.StoreChan <- storage.StoreCommand{
+		Type:       storage.CmdDelete,
+		Id:         id,
+		ResponseCh: respCh,
 	}
-	// newTodoItems := make([]models.TodoItem, 0, len(todoItems))
-	found := false
-	for index, todoItem := range todoItems {
-		if todoItem.Id == id {
-			todoItems = append(todoItems[:index], todoItems[index+1:]...)
-			found = true
-			continue
-		}
-		// newTodoItems = append(newTodoItems, todoItem)
-	}
-	if !found {
-		return errors.New("todo item not found")
-	}
-	slog.Info("Deleted todo", "traceID", trace.GetTraceID(ctx), "id", id)
-	return storage.SaveTodoItems(todoItems)
+	resp := <-respCh
+	slog.Info("sending data to delete an existing todo item from json file via channel...", "traceID", trace.GetTraceID(ctx), "id", id)
+	return resp.Err
 }

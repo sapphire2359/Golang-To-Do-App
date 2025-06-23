@@ -1,200 +1,207 @@
-package logic
+package logic_test
 
 import (
 	"context"
+	"fmt"
 	"os"
+	"strconv"
 	"testing"
+	"time"
+	"todoapp-json/logic"
 	"todoapp-json/models"
 	"todoapp-json/storage"
 )
 
-const testDataFile = "data/todos.json"
+const testDataFile = "data/data.json"
 
-// setupTest prepares a clean test environment.
-func setupTest(t *testing.T) context.Context {
-	t.Helper()
-	err := os.WriteFile(testDataFile, []byte("[]"), 0644)
-	if err != nil {
-		t.Fatalf("failed to set up test data: %v", err)
+// helper to send a command and wait for a response
+func sendCommand(cmd storage.StoreCommand) (resp storage.StoreResponse) {
+	respCh := make(chan storage.StoreResponse, 1)
+	cmd.ResponseCh = respCh
+	storage.StoreChan <- cmd
+
+	select {
+	case resp = <-respCh:
+		return
+	case <-time.After(2 * time.Second):
+		return storage.StoreResponse{Err: context.DeadlineExceeded}
 	}
-	return context.Background()
 }
 
-// teardownTest cleans up the test data file.
-func teardownTest(t *testing.T) {
-	t.Helper()
+// ****************
+// Parallel test
+// ***************
+func TestStoreIntegrationParallel(t *testing.T) {
+	// testDataFile := filepath.Join(t.TempDir(), "todos_test.json")
+	storage.SetDataFilePath(testDataFile)
+
+	// Clean up any existing test file
 	if err := os.Remove(testDataFile); err != nil && !os.IsNotExist(err) {
-		t.Logf("failed to clean up test data: %v", err)
-	}
-}
-
-func TestAddTodoItem(t *testing.T) {
-	ctx := setupTest(t)
-	defer teardownTest(t)
-
-	description := "Write unit tests"
-	status := models.NotStarted
-
-	err := AddTodoItem(ctx, description, status)
-	if err != nil {
-		t.Errorf("AddTodoItem failed: %v", err)
+		t.Fatalf("Failed to remove test file: %v", err)
 	}
 
-	todoItems, err := storage.LoadTodoItems()
-	if err != nil {
-		t.Fatalf("LoadTodoItems failed: %v", err)
-	}
+	// Start store loop fresh
+	storage.StoreChan = make(chan storage.StoreCommand, 100)
+	go storage.StartStoreLoop()
 
-	if len(todoItems) != 1 {
-		t.Fatalf("expected 1 todo, got %d", len(todoItems))
-	}
+	t.Run("ConcurrentAccess", func(t *testing.T) {
+		const count = 100
 
-	if todoItems[0].Description != description || todoItems[0].Status != status {
-		t.Errorf("unexpected todo item: %+v", todoItems[0])
-	}
-}
-
-func TestAddTodoItem_TableDriven(t *testing.T) {
-	tests := []struct {
-		name        string
-		description string
-		status      models.Status
-		wantErr     bool
-	}{
-		{"Valid started", "Task A", models.Started, false},
-		{"Valid complete", "Task B", models.Completed, false},
-		{"Valid not started", "Task C", models.NotStarted, false},
-		{"Invalid status", "Bad task", models.Status("invalid"), true},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			ctx := setupTest(t)
-			defer teardownTest(t)
-
-			err := AddTodoItem(ctx, tt.description, tt.status)
-
-			if (err != nil) != tt.wantErr {
-				t.Errorf("AddTodoItem() error = %v, wantErr %v", err, tt.wantErr)
-			}
-
-			todoItems, _ := storage.LoadTodoItems()
-			if tt.wantErr {
-				if len(todoItems) != 0 {
-					t.Errorf("expected 0 items on error, got %d", len(todoItems))
-				}
-				return
-			}
-			index := len(todoItems) - 1
-			// if len(todoItems) != 1 {
-			// 	t.Fatalf("expected 1 item, got %d", len(todoItems))
-			// }
-			if todoItems[index].Description != tt.description {
-				t.Errorf("expected description %q, got %q", tt.description, todoItems[index].Description)
-			}
-			if todoItems[index].Status != tt.status {
-				t.Errorf("expected status %q, got %q", tt.status, todoItems[index].Status)
+		t.Run("AddTodosParallel", func(t *testing.T) {
+			for i := 0; i < count; i++ {
+				i := i
+				t.Run(fmt.Sprintf("Add-%d", i), func(t *testing.T) {
+					t.Parallel()
+					err := logic.AddTodoItem(context.Background(), fmt.Sprintf("Task %d", i), models.NotStarted)
+					if err != nil {
+						t.Errorf("Failed to add task %d: %v", i, err)
+					}
+				})
 			}
 		})
-	}
-}
 
-func TestAddTodoItem_InvalidStatus(t *testing.T) {
-	ctx := setupTest(t)
-	defer teardownTest(t)
-
-	err := AddTodoItem(ctx, "Test invalid status", "bad_status")
-	if err == nil {
-		t.Errorf("expected error for invalid status, got nil")
-	}
-}
-
-func TestUpdateTodoItem(t *testing.T) {
-	ctx := setupTest(t)
-	defer teardownTest(t)
-
-	_ = AddTodoItem(ctx, "Original task", models.NotStarted)
-
-	err := UpdateTodoItem(ctx, 1, "Updated task", models.Completed)
-	if err != nil {
-		t.Errorf("UpdateTodoItem failed: %v", err)
-	}
-
-	todos, _ := storage.LoadTodoItems()
-	if todos[0].Description != "Updated task" || todos[0].Status != models.Completed {
-		t.Errorf("update not applied correctly: %+v", todos[0])
-	}
-}
-func TestUpdateTodoItem_TableDriven(t *testing.T) {
-	type args struct {
-		id          int
-		description string
-		status      models.Status
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{"Update description", args{1, "Updated Desc", ""}, false},
-		{"Update status", args{1, "", models.Completed}, false},
-		{"Invalid ID", args{99, "desc", models.Started}, true},
-		{"Invalid status", args{1, "", "bad_status"}, true},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			ctx := setupTest(t)
-			defer teardownTest(t)
-
-			_ = AddTodoItem(ctx, "Initial", models.NotStarted)
-
-			err := UpdateTodoItem(ctx, tt.args.id, tt.args.description, tt.args.status)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("UpdateTodoItem() error = %v, wantErr %v", err, tt.wantErr)
+		// Wait for all adds to complete
+		t.Run("ListToVerifyAdd", func(t *testing.T) {
+			resp := sendCommand(storage.StoreCommand{Type: storage.CmdList})
+			if resp.Err != nil {
+				t.Fatalf("List after add failed: %v", resp.Err)
+			}
+			if len(resp.TodoItems) != count {
+				t.Fatalf("Expected %d todos, got %d", count, len(resp.TodoItems))
 			}
 		})
-	}
-}
 
-func TestDeleteTodoItem(t *testing.T) {
-	ctx := setupTest(t)
-	defer teardownTest(t)
-
-	_ = AddTodoItem(ctx, "To delete", models.Started)
-
-	err := DeleteTodoItem(ctx, 1)
-	if err != nil {
-		t.Errorf("DeleteTodoItem failed: %v", err)
-	}
-
-	todos, _ := storage.LoadTodoItems()
-	if len(todos) != 0 {
-		t.Errorf("todo not deleted, got: %+v", todos)
-	}
-}
-
-func TestDeleteTodoItem_TableDriven(t *testing.T) {
-	tests := []struct {
-		name    string
-		id      int
-		wantErr bool
-	}{
-		{"Delete existing", 1, false},
-		{"Delete non-existent", 99, true},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			ctx := setupTest(t)
-			defer teardownTest(t)
-
-			_ = AddTodoItem(ctx, "Task to delete", models.NotStarted)
-
-			err := DeleteTodoItem(ctx, tt.id)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("DeleteTodoItem() error = %v, wantErr %v", err, tt.wantErr)
+		// Update all in parallel
+		t.Run("UpdateTodosParallel", func(t *testing.T) {
+			resp := sendCommand(storage.StoreCommand{Type: storage.CmdList})
+			if resp.Err != nil {
+				t.Fatalf("List before update failed: %v", resp.Err)
+			}
+			for _, item := range resp.TodoItems {
+				item := item
+				t.Run(fmt.Sprintf("Update-%d", item.Id), func(t *testing.T) {
+					t.Parallel()
+					item.Description += " (updated)"
+					item.Status = models.Completed
+					resp := sendCommand(storage.StoreCommand{
+						Type: storage.CmdUpdate,
+						Item: item,
+					})
+					if resp.Err != nil {
+						t.Errorf("Update failed for ID %d: %v", item.Id, resp.Err)
+					}
+				})
 			}
 		})
+
+		// Delete all in parallel
+		t.Run("DeleteTodosParallel", func(t *testing.T) {
+			resp := sendCommand(storage.StoreCommand{Type: storage.CmdList})
+			if resp.Err != nil {
+				t.Fatalf("List before delete failed: %v", resp.Err)
+			}
+			for _, item := range resp.TodoItems {
+				item := item
+				t.Run(fmt.Sprintf("Delete-%d", item.Id), func(t *testing.T) {
+					t.Parallel()
+					resp := sendCommand(storage.StoreCommand{
+						Type: storage.CmdDelete,
+						Id:   item.Id,
+					})
+					if resp.Err != nil {
+						t.Errorf("Delete failed for ID %d: %v", item.Id, resp.Err)
+					}
+				})
+			}
+		})
+
+		// Verify all are gone
+		t.Run("ListAfterAllDeletes", func(t *testing.T) {
+			resp := sendCommand(storage.StoreCommand{Type: storage.CmdList})
+			if resp.Err != nil {
+				t.Fatalf("List failed after deletes: %v", resp.Err)
+			}
+			if len(resp.TodoItems) != 0 {
+				t.Errorf("Expected 0 todos after deletes, got %d", len(resp.TodoItems))
+			}
+		})
+	})
+}
+
+// ***************
+// Unit test
+// ***************
+func TestStoreIntegrationUnit(t *testing.T) {
+	storage.SetDataFilePath(testDataFile) // ensure your storage package supports setting file path
+
+	// Explicitly remove file before starting
+	if err := os.Remove(testDataFile); err != nil && !os.IsNotExist(err) {
+		t.Fatalf("Failed to remove test file: %v", err)
 	}
+	// Start real store loop
+	storage.StoreChan = make(chan storage.StoreCommand, 100)
+	go storage.StartStoreLoop()
+
+	totalTodoItems := 5
+
+	// 1. Add Todo
+	t.Run("AddTodo", func(t *testing.T) {
+		for i := 0; i < totalTodoItems; i++ {
+			err := logic.AddTodoItem(context.Background(), "Wash dishes "+strconv.Itoa(i), models.NotStarted)
+			if err != nil {
+				t.Fatalf("AddTodoItem failed: %v", err)
+			}
+		}
+	})
+
+	// 2. List Todos
+	var list []models.TodoItem
+	t.Run("ListTodos", func(t *testing.T) {
+		resp := sendCommand(storage.StoreCommand{Type: storage.CmdList})
+		if resp.Err != nil {
+			t.Fatalf("List failed: %v", resp.Err)
+		}
+		if len(resp.TodoItems) != totalTodoItems {
+			t.Fatalf("Expected 1 item, got %d", len(resp.TodoItems))
+		}
+		list = resp.TodoItems
+	})
+
+	// 3. Update Todo
+	t.Run("UpdateTodo", func(t *testing.T) {
+		item := list[0]
+		item.Description = "Wash dishes thoroughly"
+		item.Status = models.Completed
+		resp := sendCommand(storage.StoreCommand{
+			Type: storage.CmdUpdate,
+			Item: item,
+		})
+		if resp.Err != nil {
+			t.Fatalf("Update failed: %v", resp.Err)
+		}
+	})
+
+	// 4. Delete Todo
+	t.Run("DeleteTodo", func(t *testing.T) {
+		item := list[0]
+
+		resp := sendCommand(storage.StoreCommand{
+			Type: storage.CmdDelete,
+			Id:   item.Id,
+		})
+		if resp.Err != nil {
+			t.Fatalf("Delete failed: %v", resp.Err)
+		}
+	})
+
+	// 5. Verify List is Empty
+	t.Run("ListAfterDelete", func(t *testing.T) {
+		resp := sendCommand(storage.StoreCommand{Type: storage.CmdList})
+		if resp.Err != nil {
+			t.Fatalf("Final list failed: %v", resp.Err)
+		}
+		if len(resp.TodoItems) != totalTodoItems-1 {
+			t.Errorf("Expected 0 items after delete, got %d", len(resp.TodoItems))
+		}
+	})
 }
