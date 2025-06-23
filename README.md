@@ -1,14 +1,12 @@
 *The code can be found in "todoapp-json" folder.
 
-*"Using text file" folder contains work from week 1 that has been brought forward and has discontinued
-
 ------------------------------------------------------------------------------------------------------------------
 
 **#How to use Todo App CLI**
 
 [1] Add item
 
-go run todo-app.go -action=add -desc=" " -status="not started|started|completed"
+go run main.go -action=add -desc=" " -status="not started|started|completed"
 
 [2] List items
 
@@ -16,20 +14,16 @@ go run todo-app.go -action=list
 
 [3] Update item
 
-go run todo-app.go -action=update -id=" " -desc="" -status-""
+go run main.go -action=update -id=" " -desc="" -status-""
 
 [4] Delete item
 
-go run todo-app.go -action=delete -id=" "
+go run main.go -action=delete -id=" "
 
-[5] Start local server
+[5] Todo app how to use instructions is displayed.
+When anything other than "add|list|update|delete" is input after the -action flag e.g.
 
-go run todo-app.go -action=serve
-
-[6] Todo app how to use instructions is displayed.
-When anything other than "add|list|update|delete|serve" is input after the -action flag e.g.
-
-go run todo-app.go -action= or go run todo-app.go -action=abcdefg
+go run main.go -action= or go run main.go -action=abcdefg
 
 ----------------------------------------------------------------------------------------------------------------------
 
@@ -51,7 +45,7 @@ go run todo-app.go -action= or go run todo-app.go -action=abcdefg
 
 Start local server in any terminal powershell or bash and run the following command i.e.
 
-go run todo-app.go
+go run main.go
 
 [Step 2]
 
@@ -85,7 +79,7 @@ curl -X DELETE "http://localhost:8080/delete?id=16"
 
 Open a browser and input the following url.
 
-http://localhost:8080/static/
+http://localhost:8080/static/about.html
 
 [2] dynamic web page
 
